@@ -1,319 +1,162 @@
-#include <bits/stdc++.h>
+#include<bits/stdc++.h>
 using namespace std;
-
-const int INF = 1e9;
-
-
-// ---------------- Dijkstra ----------------
-
-void dijkstra(int src,
-              int V,
-              vector<vector<pair<int,int>>> &adj,
-              vector<int> &dis)
+const int INF =1e8;
+void dijkstra(int src,int n,vector<vector<pair<int,int>>>&adj,vector<int>&dis)
 {
-    priority_queue<
-        pair<int,int>,
-        vector<pair<int,int>>,
-        greater<pair<int,int>>
-    > pq;
-
-    dis.assign(V, INF);
-
-    dis[src] = 0;
-
-    pq.push({0, src});
-
-    while (!pq.empty())
+    dis.assign(n,INF);
+    dis[src]=0;
+    priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>>pq;
+    pq.push({0,src});
+    while(!pq.empty())
     {
-        pair<int,int> par = pq.top();
+        pair<int,int>par=pq.top();
         pq.pop();
-
-        int par_dis = par.first;
-        int par_node = par.second;
-
-        // পুরনো distance হলে ignore করব
-        if (par_dis != dis[par_node])
-            continue;
-
-        for (auto child : adj[par_node])
+        int par_node=par.second;
+        int par_dis=par.first;
+        for(auto &child:adj[par_node])
         {
-            int child_node = child.first;
-            int child_dis = child.second;
-
-            if (par_dis + child_dis < dis[child_node])
+            int child_node=child.first;
+            int child_dis=child.second;
+            if(par_dis+child_dis<dis[child_node])
             {
-                dis[child_node] =
-                    par_dis + child_dis;
+                dis[child_node]=par_dis+child_dis;
+                pq.push({dis[child_node],child_node});
 
-                pq.push({
-                    dis[child_node],
-                    child_node
-                });
             }
         }
     }
 }
-
-
-// ---------------- Bellman-Ford ----------------
-
-bool bellmanFord(
-    int V,
-    vector<vector<pair<int,int>>> &adj,
-    int src,
-    vector<int> &h)
+bool bellman(int newsrc,int n,vector<vector<pair<int,int>>>&adj,vector<int>&h)
 {
-    h.assign(V, INF);
-
-    h[src] = 0;
-
-    // V-1 times relaxation
-    for (int i = 0; i < V - 1; i++)
+    h.assign(n,INF);
+    h[newsrc]=0;
+    for(int iter=0; iter<n-1; iter++)
     {
-        bool changed = false;
-
-        for (int u = 0; u < V; u++)
+        bool changed=false;
+        for(int u=0; u<n; u++)
         {
-            if (h[u] == INF)
+            if(h[u]==INF)
                 continue;
-
-            for (auto edge : adj[u])
+            for(auto &e:adj[u])
             {
-                int v = edge.first;
-                int w = edge.second;
-
-                if (h[u] + w < h[v])
+                int v=e.first;
+                int w=e.second;
+                if(h[u]!=INF&&h[u]+w<h[v])
                 {
-                    h[v] = h[u] + w;
-                    changed = true;
+                    h[v]=h[u]+w;
+                    changed=true;
                 }
             }
         }
-
-        if (!changed)
+        if(!changed)
             break;
     }
-
-
-    // Negative cycle check
-    for (int u = 0; u < V; u++)
+    for(int u=0; u<n; u++)
     {
-        if (h[u] == INF)
+        if(h[u]==INF)
             continue;
-
-        for (auto edge : adj[u])
+        for(auto e:adj[u])
         {
-            int v = edge.first;
-            int w = edge.second;
-
-            if (h[u] + w < h[v])
+            int v=e.first;
+            int w=e.second;
+            if(h[v]>h[u]+w)
             {
                 return false;
             }
         }
     }
-
     return true;
 }
-
-
-// ---------------- Johnson Algorithm ----------------
-
-void johnson(
-    int n,
-    vector<vector<pair<int,int>>> &originalAdj)
+void johnson(vector<vector<pair<int,int>>>&oadj,int n)
 {
-    /*
-        Original vertices:
-        0, 1, 2, ..., n-1
-
-        New vertex:
-        n
-    */
-
-    int newSource = n;
-    int V = n + 1;
-
-
-    // -----------------------------------
-    // Step 1:
-    // New graph তৈরি করছি
-    // -----------------------------------
-
-    vector<vector<pair<int,int>>> adj(V);
-
-    for (int u = 0; u < n; u++)
+    int newsource=n;
+    int V=n+1;
+    vector<vector<pair<int,int>>>adj(V);
+    for(int i=0; i<n; i++)
     {
-        for (auto edge : originalAdj[u])
+        int u=i;
+        for(auto &e:adj[i])
         {
-            int v = edge.first;
-            int w = edge.second;
+            int v=e.first;
+            int w=e.second;
+            adj[u].push_back({v,w});
 
-            adj[u].push_back({v, w});
         }
     }
-
-
-    // -----------------------------------
-    // Step 2:
-    // New source থেকে সব node-এ
-    // 0 weight edge
-    // -----------------------------------
-
-    for (int i = 0; i < n; i++)
+    for(int i=0; i<n; i++)
     {
-        adj[newSource].push_back({i, 0});
+        adj[newsource].push_back({i,0});
     }
-
-
-    // -----------------------------------
-    // Step 3:
-    // Bellman-Ford
-    // -----------------------------------
-
-    vector<int> h;
-
-    bool possible =
-        bellmanFord(V, adj, newSource, h);
-
-
-    if (!possible)
+    vector<int>h;
+    bool possible=bellman(newsource,n,adj,h);
+    if(!possible)
     {
-        cout << "Negative cycle detected\n";
+        cout<<"Negative cycle"<<endl;
         return;
     }
-
-
-    // -----------------------------------
-    // Step 4:
-    // Reweight edges
-    //
-    // newWeight = w + h[u] - h[v]
-    // -----------------------------------
-
-    vector<vector<pair<int,int>>> newAdj(n);
-
-    for (int u = 0; u < n; u++)
+    vector<vector<pair<int,int>>>newadj(n);
+    for(int i=0; i<n; i++)
     {
-        for (auto edge : originalAdj[u])
+        for(auto x:oadj[i])
         {
-            int v = edge.first;
-            int w = edge.second;
-
-            int newWeight =
-                w + h[u] - h[v];
-
-            newAdj[u].push_back({
-                v,
-                newWeight
-            });
+            int u=i;
+            int w=x.second;
+            int v=x.first;
+            int newweight=w+ h[u]-h[v];
+            newadj[u].push_back({v,newweight});
         }
     }
-
-
-    // -----------------------------------
-    // Step 5:
-    // Every vertex থেকে Dijkstra
-    // -----------------------------------
-
-    vector<vector<int>> answer(
-        n,
-        vector<int>(n, INF)
-    );
-
-    for (int src = 0; src < n; src++)
+    vector<vector<int>>ans(n,vector<int>(n,INF));
+    for(int u=0; u<n; u++)
     {
-        vector<int> dis;
-
-        dijkstra(
-            src,
-            n,
-            newAdj,
-            dis
-        );
-
-
-        // -----------------------------------
-        // Step 6:
-        // Original distance বের করা
-        //
-        // d(u,v) =
-        // d'(u,v) - h[u] + h[v]
-        // -----------------------------------
-
-        for (int v = 0; v < n; v++)
+        vector<int>dis;
+        dijkstra(u,n,newadj,dis);
+        for(int v=0;v<n;v++)
         {
-            if (dis[v] != INF)
+            if(dis[v]!=INF)
+                ans[u][v]=dis[v]-h[u]+h[v];
+        }
+
+    }
+    for(int u=0;u<n;u++)
+    {
+        for(int v=0;v<n;v++)
+        {
+            if(ans[u][v]==INF)
             {
-                answer[src][v] =
-                    dis[v] - h[src] + h[v];
+                cout<<"INF ";
+                continue;
             }
+            cout<<ans[u][v]<< " ";
+
         }
+        cout<<endl;
     }
 
-
-    // -----------------------------------
-    // Print Answer
-    // -----------------------------------
-
-    cout << "\nAll Pairs Shortest Distance:\n\n";
-
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            if (answer[i][j] == INF)
-                cout << "INF ";
-            else
-                cout << answer[i][j] << " ";
-        }
-
-        cout << "\n";
-    }
 }
-
-
-// ---------------- Main ----------------
-
 int main()
 {
-    int n, m;
-
-    cin >> n >> m;
-
-    vector<vector<pair<int,int>>> adj(n);
-
-    for (int i = 0; i < m; i++)
+    int n,e;
+    cin>>n>>e;
+    vector<vector<pair<int,int>>>oadj(n);
+    while(e--)
     {
-        int u, v, w;
-
-        cin >> u >> v >> w;
-
-        adj[u].push_back({v, w});
+        int u,v,w;
+        cin>>u>>v>>w;
+        oadj[u].push_back({v,w});
     }
-
-
-    // Original graph print
-    cout << "Original Graph:\n";
-
-    for (int i = 0; i < n; i++)
-    {
-        cout << i << " -> ";
-
-        for (auto edge : adj[i])
-        {
-            cout << "("
-                 << edge.first
-                 << ","
-                 << edge.second
-                 << ") ";
-        }
-
-        cout << "\n";
-    }
-
-
-    johnson(n, adj);
-
-    return 0;
+    johnson(oadj,n);
 }
+/*5 7
+0 1 4
+0 2 2
+1 2 -1
+1 3 2
+2 3 3
+3 4 2
+4 1 1
+0 4 2 5 7
+INF 0 -1 2 4
+INF 6 0 3 5
+INF 3 2 0 2
+INF 1 0 3 0*/
