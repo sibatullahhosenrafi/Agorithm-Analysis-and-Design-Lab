@@ -1,12 +1,15 @@
 #include<bits/stdc++.h>
 using namespace std;
 const int INF =1e8;
-void dijkstra(int src,int n,vector<vector<pair<int,int>>>&adj,vector<int>&dis)
+vector<int>dis;
+void dijkstra(int src,int n,vector<vector<pair<int,int>>>&adj,vector<int>&dis,vector<vector<int>>&path)
 {
     dis.assign(n,INF);
     dis[src]=0;
+    path.assign(n, {});
     priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>>pq;
     pq.push({0,src});
+    path[src]= {src};
     while(!pq.empty())
     {
         pair<int,int>par=pq.top();
@@ -21,6 +24,8 @@ void dijkstra(int src,int n,vector<vector<pair<int,int>>>&adj,vector<int>&dis)
             {
                 dis[child_node]=par_dis+child_dis;
                 pq.push({dis[child_node],child_node});
+                path[child_node]=path[par_node];
+                path[child_node].push_back(child_node);
 
             }
         }
@@ -75,7 +80,7 @@ void johnson(vector<vector<pair<int,int>>>&oadj,int n)
     for(int i=0; i<n; i++)
     {
         int u=i;
-        for(auto &e:adj[i])
+        for(auto e:oadj[i])
         {
             int v=e.first;
             int w=e.second;
@@ -88,7 +93,7 @@ void johnson(vector<vector<pair<int,int>>>&oadj,int n)
         adj[newsource].push_back({i,0});
     }
     vector<int>h;
-    bool possible=bellman(newsource,n,adj,h);
+    bool possible=bellman(newsource,V,adj,h);
     if(!possible)
     {
         cout<<"Negative cycle"<<endl;
@@ -106,21 +111,24 @@ void johnson(vector<vector<pair<int,int>>>&oadj,int n)
             newadj[u].push_back({v,newweight});
         }
     }
+    vector<vector<vector<int>>>all_path(n);
     vector<vector<int>>ans(n,vector<int>(n,INF));
     for(int u=0; u<n; u++)
     {
-        vector<int>dis;
-        dijkstra(u,n,newadj,dis);
-        for(int v=0;v<n;v++)
+
+        vector<vector<int>>path;
+        dijkstra(u,n,newadj,dis,path);
+        all_path[u]=path;
+        for(int v=0; v<n; v++)
         {
             if(dis[v]!=INF)
                 ans[u][v]=dis[v]-h[u]+h[v];
         }
 
     }
-    for(int u=0;u<n;u++)
+    for(int u=0; u<n; u++)
     {
-        for(int v=0;v<n;v++)
+        for(int v=0; v<n; v++)
         {
             if(ans[u][v]==INF)
             {
@@ -131,6 +139,25 @@ void johnson(vector<vector<pair<int,int>>>&oadj,int n)
 
         }
         cout<<endl;
+    }
+    for(int i=0; i<n; i++)
+    {
+        for(int j=0; j<n; j++)
+        {
+            if(ans[i][j]==INF)
+            {
+                cout<<"INF ";
+            }
+            else
+            {
+                cout<<"[";
+                for(int x:all_path[i][j])
+                {
+                    cout<<x<<" ";
+                }
+                cout<<"]";
+            }
+        }
     }
 
 }
@@ -147,16 +174,3 @@ int main()
     }
     johnson(oadj,n);
 }
-/*5 7
-0 1 4
-0 2 2
-1 2 -1
-1 3 2
-2 3 3
-3 4 2
-4 1 1
-0 4 2 5 7
-INF 0 -1 2 4
-INF 6 0 3 5
-INF 3 2 0 2
-INF 1 0 3 0*/
